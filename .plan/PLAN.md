@@ -234,7 +234,7 @@ opencode-sentinel/
 - [x] `LICENSE` (MIT)
 - [x] `package.json` に `files` / `repository` / `keywords` 設定（plugin に `bin` は不要）
 - [x] npm publish 準備（`npm publish --dry-run` で内容確認）
-- [ ] デモ用 gif（`asciinema` で `tail -f` 監視 → ERROR 検出を録画）
+- [x] デモ用 gif（`asciinema` で `tail -f` 監視 → ERROR 検出を録画）→ `demo.cast` 作成済み。`asciinema play demo.cast` で再生可能
 - [x] GitHub リポジトリ作成、初回 push
 - [ ] **Decision gate**: 公開するか、しばらく自宅運用してからにするか
 

@@ -1,26 +1,27 @@
 # OpenCode Sentinel
 
-opencode 用の Monitor プラグイン。バックグラウンドプロセスの stdout をリアルタイムでエージェントに通知します。
+A Monitor plugin for [OpenCode](https://opencode.ai) — background process monitoring with real-time agent notifications via steer delivery.
 
-## 機能
+## Features
 
-- **プロセス監視**: 任意のシェルコマンドをバックグラウンドで実行し、stdout の各行をエージェントに steer 通知
-- **並行監視**: 複数の monitor を同時起動可能
-- **200ms バッチ**: 高頻度の出力を 200ms 間隔でまとめて通知（レート制限）
-- **フラッド対策**: 100 行/秒を超えると自動停止
-- **stderr 分離**: stderr は `/tmp/sentinel-{id}-stderr.log` に記録
-- **クリーンアップ**: セッション終了・プラグインアンロード時に全プロセスを自動停止
+- **Process Monitoring**: Run any shell command in the background; each stdout line is delivered to the agent as a real-time steer notification
+- **Parallel Monitors**: Run multiple monitors simultaneously
+- **200ms Batching**: High-frequency output is batched at 200ms intervals to prevent flooding
+- **Flood Protection**: Auto-kills monitors exceeding 100 lines/second
+- **stderr Separation**: stderr is logged to `/tmp/sentinel-{id}-stderr.log`
+- **Auto Cleanup**: All processes are terminated on session end or plugin unload
 
-## インストール
+## Installation
+
+Add to your `opencode.json`:
 
 ```json
-// opencode.json に追加
 {
   "plugin": ["opencode-sentinel"]
 }
 ```
 
-またはファイルパス指定:
+Or install via file path:
 
 ```json
 {
@@ -28,50 +29,73 @@ opencode 用の Monitor プラグイン。バックグラウンドプロセス�
 }
 ```
 
-## 使い方
+Or via CLI:
 
-### ログ監視
-
-```
-sentinel_monitor で /var/log/app.log の ERROR 行を監視して
+```bash
+opencode plugin opencode-sentinel
 ```
 
-エージェントが以下のツールを呼び出します：
-- `sentinel_monitor` — 監視開始（コマンド + 説明ラベル）
-- `sentinel_stop` — 指定した monitor を停止
-- `sentinel_list` — 実行中の monitor 一覧
+## Usage
 
-### grep を使う場合の注意
+### Log Monitoring
 
-パイプで grep を使う場合は **必ず `--line-buffered` を指定**してください。
+Just ask the agent in natural language:
+
+```
+Monitor /var/log/app.log for ERROR lines using sentinel_monitor
+```
+
+The agent will call the appropriate tools:
+
+| Tool | Description |
+|------|-------------|
+| `sentinel_monitor` | Start monitoring (command + description label) |
+| `sentinel_stop` | Stop a monitor by ID |
+| `sentinel_list` | List all running monitors |
+| `sentinel_ping` | Health check — returns "pong" |
+| `sentinel_spike` | Spike test — 3-second delayed steer delivery |
+
+### Important: grep requires `--line-buffered`
+
+When piping to grep, you **must** use `--line-buffered`:
 
 ```
 ✅ tail -f /var/log/app.log | grep --line-buffered ERROR
 ❌ tail -f /var/log/app.log | grep ERROR
 ```
 
-## 制限事項
+Without `--line-buffered`, grep buffers output and lines won't arrive in real-time.
 
-- **プロセスの孤児化**: opencode 本体が `SIGKILL` などで強制終了した場合、監視プロセスが残る可能性があります。通常の終了（`dispose` フック経由）では全プロセスが停止されます。
-- **即時割り込み不可**: エージェントが LLM 応答のストリーミング中は、その turn が終わるまで steer 通知は取り込まれません。アイドル時は 500ms 以内に反応します。
+## steer vs queue
 
-## steer と queue の違い
+Sentinel uses `delivery: "steer"` for agent notifications. Here's how it differs from `"queue"`:
 
-sentinel は `delivery: "steer"` を使用してエージェントに通知を送ります。これは opencode の `delivery` パラメータの2つのモードと以下のように異なります：
+| Mode | Behavior |
+|------|----------|
+| **steer** (used by sentinel) | Immediately wakes idle sessions. During active runs, messages are promoted between provider turns. No streaming interruption. |
+| **queue** | Messages are queued until the run completes, then delivered on the next user input. Unsuitable for real-time monitoring. |
 
-| モード | 挙動 |
-|--------|------|
-| **steer**（sentinel が使用） | アイドル時は即座にエージェントを wake して新規 run を開始。実行中は現在の provider turn が終了した後、次の turn の冒頭で取り込まれる。ストリーミング中は割り込み不可。 |
-| **queue** | run が完了するまでキューに溜められ、次のユーザー入力時にまとめて取り込まれる。リアルタイム性が必要な監視には不向き。 |
+Why steer:
+- **Real-time responsiveness**: Instant wake on idle sessions ensures prompt log monitoring
+- **No streaming disruption**: LLM responses are not interrupted; notifications are picked up at turn boundaries
+- **No queue buildup**: Avoids notification backlog during long-running tasks
 
-steer を選択している理由：
-- **リアルタイム性**: アイドル時の即時 wake により、ログ監視の即応性を確保
-- **割り込み抑制**: 実行中の LLM 応答は妨げず、turn の切れ目で自然に取り込まれる
-- **キュー詰まり防止**: queue だと長時間 run 中に通知が滞留するのを回避
+## Limitations
 
-## 技術スタック
+- **Orphaned Processes**: If OpenCode is killed via SIGKILL (bypassing the dispose hook), monitored processes may remain. Normal shutdown via dispose cleans up all processes.
+- **No Mid-Stream Interruption**: During LLM response streaming, steer notifications are not processed until the current turn completes. Idle sessions respond within 500ms.
+
+## Tech Stack
 
 - TypeScript (strict)
 - @opencode-ai/plugin (v1 Hooks API)
-- @opencode-ai/sdk/v2 (steer 送信用)
-- Bun / Node.js 互換
+- @opencode-ai/sdk/v2 (steer delivery)
+- Bun / Node.js compatible
+
+## License
+
+MIT
+
+---
+
+[日本語版はこちら](README_ja.md)

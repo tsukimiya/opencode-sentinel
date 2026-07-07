@@ -1,9 +1,9 @@
 {
   "name": "opencode-sentinel",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "main": "src/index.ts",
-  "files": ["src", "README.md", "LICENSE"],
+  "files": ["src", "README.md", "README_ja.md", "LICENSE"],
   "license": "MIT",
   "repository": {
     "type": "git",

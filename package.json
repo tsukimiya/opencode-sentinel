@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "type": "module",
   "main": "src/index.ts",
+  "files": ["src", "README.md", "LICENSE"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsukimizake/opencode-sentinel.git"
+  },
+  "keywords": ["opencode", "plugin", "monitor", "sentinel", "cli", "tail", "log"],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test"

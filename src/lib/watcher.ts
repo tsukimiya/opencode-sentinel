@@ -16,6 +16,34 @@ export function startWatcher(params: {
   })
 
   let buffer = ""
+  let batchBuffer: string[] = []
+  let batchTimer: ReturnType<typeof setTimeout> | null = null
+
+  const lineTimestamps: number[] = []
+  const MAX_LINES_PER_SEC = 100
+
+  function flushBatch() {
+    if (batchBuffer.length === 0) return
+    const text = batchBuffer
+      .map((line) => `[monitor:${params.id}] ${line}`)
+      .join("\n")
+    batchBuffer = []
+    batchTimer = null
+    // Fire and forget — don't block the stream
+    params.v2Client.session
+      .prompt({
+        sessionID: params.sessionID,
+        prompt: { text },
+        delivery: "steer",
+      })
+      .catch((err: unknown) => {
+        console.error(
+          `[sentinel] batch steer failed for ${params.id}:`,
+          err,
+        )
+      })
+  }
+
   proc.stdout!.on("data", async (chunk: Buffer) => {
     buffer += chunk.toString()
     const lines = buffer.split("\n")
@@ -26,17 +54,37 @@ export function startWatcher(params: {
 
       params.manager.incrementLines(params.id)
 
-      try {
-        await params.v2Client.session.prompt({
-          sessionID: params.sessionID,
-          prompt: { text: `[monitor:${params.id}] ${line}` },
-          delivery: "steer",
-        })
-      } catch (err) {
-        console.error(
-          `[sentinel] steer delivery failed for monitor ${params.id}:`,
-          err,
-        )
+      const now = Date.now()
+      lineTimestamps.push(now)
+      while (
+        lineTimestamps.length > 0 &&
+        lineTimestamps[0] < now - 1000
+      ) {
+        lineTimestamps.shift()
+      }
+
+      if (lineTimestamps.length > MAX_LINES_PER_SEC) {
+        if (proc.pid) {
+          try {
+            process.kill(-proc.pid, "SIGTERM")
+          } catch {}
+        }
+        params.v2Client.session
+          .prompt({
+            sessionID: params.sessionID,
+            prompt: {
+              text: `[monitor:${params.id}] FLOOD DETECTED: ${lineTimestamps.length} lines/sec exceeds limit of ${MAX_LINES_PER_SEC}. Monitor auto-stopped.`,
+            },
+            delivery: "steer",
+          })
+          .catch(() => {})
+        params.manager.stop(params.id)
+        return
+      }
+
+      batchBuffer.push(line)
+      if (!batchTimer) {
+        batchTimer = setTimeout(flushBatch, 200)
       }
     }
   })
@@ -47,6 +95,14 @@ export function startWatcher(params: {
   })
 
   proc.on("exit", async (code) => {
+    if (batchTimer) {
+      clearTimeout(batchTimer)
+      batchTimer = null
+    }
+    if (batchBuffer.length > 0) {
+      flushBatch()
+    }
+
     if (code !== 0 && code !== null) {
       try {
         await params.v2Client.session.prompt({

@@ -3,6 +3,7 @@ import { createOpencodeClient } from "@opencode-ai/sdk/v2"
 import { createMonitorTool } from "./monitor.tool"
 import { sentinel_list } from "./list.tool"
 import { sentinel_stop } from "./stop.tool"
+import { manager } from "./lib/manager"
 
 interface ToolContext {
   sessionID: string
@@ -47,6 +48,19 @@ export default async (input: any) => {
           return "scheduled — steer delivery will fire in 3 seconds"
         },
       }),
+    },
+
+    dispose: async () => {
+      manager.dispose()
+    },
+
+    event: async (event: any) => {
+      if (event.type === "session.deleted") {
+        const sessionID = event.properties?.sessionID
+        if (sessionID) {
+          manager.dispose()
+        }
+      }
     },
   }
 }

@@ -1,13 +1,17 @@
 {
   "name": "opencode-sentinel",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "main": "src/index.ts",
   "files": ["src", "README.md", "LICENSE"],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tsukimizake/opencode-sentinel.git"
+    "url": "git+https://github.com/tsukimiya/opencode-sentinel.git"
+  },
+  "homepage": "https://github.com/tsukimiya/opencode-sentinel#readme",
+  "bugs": {
+    "url": "https://github.com/tsukimiya/opencode-sentinel/issues"
   },
   "keywords": ["opencode", "plugin", "monitor", "sentinel", "cli", "tail", "log"],
   "scripts": {

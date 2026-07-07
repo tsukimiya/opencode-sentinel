@@ -1,6 +1,8 @@
 import { tool } from "@opencode-ai/plugin"
 import { createOpencodeClient } from "@opencode-ai/sdk/v2"
 import { createMonitorTool } from "./monitor.tool"
+import { sentinel_list } from "./list.tool"
+import { sentinel_stop } from "./stop.tool"
 
 interface ToolContext {
   sessionID: string
@@ -13,6 +15,10 @@ export default async (input: any) => {
   return {
     tool: {
       sentinel_monitor: createMonitorTool(v2),
+
+      sentinel_stop,
+
+      sentinel_list,
 
       sentinel_ping: tool({
         description: "Health check for the sentinel plugin. Returns pong if the plugin is loaded and operational.",

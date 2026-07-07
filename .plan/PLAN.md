@@ -23,8 +23,8 @@ opencode に Claude Code 互換の **Monitor ツール** を提供するスタ�
 3. ユーザーが明示的に止めるかセッション終了まで監視継続
 
 **MVP 完了の定義**:
-- [ ] アイドル時: 1行マッチ → 500ms以内にエージェントが反応
-- [ ] 実行中: 1行マッチ → 現在の provider turn 終了後、次 turn の冒頭で取り込まれる（steer の仕様上、ストリーミング中の即時割り込みは不可。500ms保証はアイドル時のみ）
+- [x] アイドル時: 1行マッチ → 500ms以内にエージェントが反応
+- [x] 実行中: 1行マッチ → 現在の provider turn 終了後、次 turn の冒頭で取り込まれる（steer の仕様上、ストリーミング中の即時割り込みは不可。500ms保証はアイドル時のみ）
 - [x] 複数 monitor を並行起動できる
 - [x] monitor を stop するとプロセス・リソース解放される
 - [x] セッション終了で全 monitor プロセスが cleanup される
@@ -153,7 +153,7 @@ opencode-sentinel/
     },
   })
   ```
-- [ ] ローカル opencode で `sentinel_ping` が呼べることを確認（**Decision gate**）
+- [x] ローカル opencode で `sentinel_ping` が呼べることを確認（**Decision gate**）
 
 ### Phase 1 — Spike: `delivery: "steer"` 挙動検証 (1-2h)
 
@@ -163,13 +163,12 @@ opencode-sentinel/
   - plugin entry で `createOpencodeClient({ baseUrl: input.serverUrl.toString() })`（`@opencode-ai/sdk/v2`）を生成
   - 実行すると `setTimeout` で3秒後に `v2.session.prompt({ sessionID: ctx.sessionID, prompt: { text: "[spike] hello" }, delivery: "steer" })` を呼ぶ（sessionID は `ToolContext` から取得）
   - ツール本体は即座に `"scheduled"` を返す
-- [ ] 追加検証: plugin プロセスから `serverUrl` への接続に認証が要るか（要るならヘッダの取り回しを確認）
-- [ ] 検証項目:
-  - [ ] エージェントが別の作業中に `[spike] hello` が届くか？
-  - [ ] アイドル時（ユーザー入力待ち）に届くか？
-  - [ ] 連続して prompt した時の順序・間隔は？
-  - [x] `delivery: "queue"` との差をドキュメント化
-- [ ] **判定**: steer で wake が機能しなければ、設計全体を見直す（shim 方式に撤退など）
+- [x] 追加検証: plugin プロセスから `serverUrl` への接続に認証が要るか → **不要確認済み**（localhost:4096 で認証なしで接続可能）
+- [x] 検証項目:
+  - [x] エージェントが別の作業中に `[spike] hello` が届くか？
+  - [x] アイドル時（ユーザー入力待ち）に届くか？
+  - [x] 連続して prompt した時の順序・間隔は？
+- [x] **判定**: steer で wake が機能することを確認 → アイドル時は即時wake、実行中はturn間で取り込み（コード検証 + 実機確認）
 
 ### Phase 2 — Monitor ツール MVP (2-3h)
 
@@ -203,7 +202,7 @@ opencode-sentinel/
   })
   ```
 - [x] `src/monitor.txt` を書く（LLM向け: 「いつ使う・いつ使わないか・grep --line-buffered 必須」を含む）
-- [ ] **手動テスト**: `tail -f /tmp/test.log` を monitor し、別 shell から `echo hello >> /tmp/test.log` でエージェントが反応するか
+- [x] **手動テスト**: `tail -f /tmp/test.log` を monitor し、別 shell から `echo hello >> /tmp/test.log` でエージェントが反応するか
 
 ### Phase 3 — Stop + List ツール (1-2h)
 
@@ -214,7 +213,7 @@ opencode-sentinel/
 - [x] `monitor_list` ツール:
   - `args: {}`
   - 実行中 monitor 一覧を `{ id, description, command, startedAt, linesEmitted }` で返す
-- [ ] **手動テスト**: 複数 monitor 起動 → list → stop → list
+- [x] **手動テスト**: 複数 monitor 起動 → list → stop → list
 
 ### Phase 4 — セーフティ (2-3h)
 

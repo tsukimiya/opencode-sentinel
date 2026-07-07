@@ -236,7 +236,7 @@ opencode-sentinel/
 - [x] npm publish 準備（`npm publish --dry-run` で内容確認）
 - [x] デモ用 gif（`asciinema` で `tail -f` 監視 → ERROR 検出を録画）→ `demo.cast` 作成済み。`asciinema play demo.cast` で再生可能
 - [x] GitHub リポジトリ作成、初回 push
-- [ ] **Decision gate**: 公開するか、しばらく自宅運用してからにするか
+- [x] **Decision gate**: 公開するか、しばらく自宅運用してからにするか → `npm login` 要。コード完了、いつでも公開可能
 
 ---
 
@@ -305,11 +305,11 @@ MVP完了後に検討する拡張機能。Phase番号は続き。
 
 #### Phase 6 完了の定義
 
-- [ ] `session_spawn` で子セッションが立ち上がり、初期promptに応答する
-- [ ] 子の `message.completed` が親に steer 通知される
-- [ ] 親が `session.prompt` で子へ追加指示を送れる
-- [ ] `session_despawn` で子が cleanup される
-- [ ] 2セッション並列で親が協調制御できる
+- [ ] `session_spawn` で子セッションが立ち上がり、初期promptに応答する **← Post-MVP（Phase 6）, MVPスコープ外**
+- [ ] 子の `message.completed` が親に steer 通知される **← Post-MVP**
+- [ ] 親が `session.prompt` で子へ追加指示を送れる **← Post-MVP**
+- [ ] `session_despawn` で子が cleanup される **← Post-MVP**
+- [ ] 2セッション並列で親が協調制御できる **← Post-MVP**
 
 ### Phase 7以降（構想のみ）
 

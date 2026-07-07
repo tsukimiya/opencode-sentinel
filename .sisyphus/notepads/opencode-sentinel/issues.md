@@ -1,11 +1,14 @@
 # Issues — opencode-sentinel
 
-## 2026-07-07 BLOCKER: Local plugin loading via file:// URL
-- **Severity**: High (blocks live verification)
+## 2026-07-07 BLOCKER: Local plugin loading via file:// URL (HIGH)
 - **opencode version**: 1.17.15
-- **Symptom**: `"plugin": ["file:///path/to/src/index.ts"]` in opencode.json loads without config error, but tools are not registered
-- **Tested**: Both sentinel plugin and minimal test plugin fail to register tools via file:// URL
-- **npm link + config name**: Also fails — opencode doesn't resolve locally linked packages
-- **Root cause**: opencode 1.17.15 may not support file:// plugin loading, or requires a different mechanism
-- **Workaround**: Publish to npm, then `opencode plugin opencode-sentinel`
-- **Resolution**: Needs npm publish OR investigate alternative local loading mechanism (global plugin dir, symlink approach)
+- **Symptom**: `"plugin": ["opencode-sentinel"]` in opencode.json silently fails — no config error, but tools never register
+- **Investigation results**:
+  1. `file://` URLs in plugin config are silently ignored
+  2. npm package name in plugin config only works for packages from npm registry
+  3. Local npm install (`npm pack` + `npm install`) puts package in node_modules but opencode doesn't load it
+  4. oh-my-openagent (working plugin) is stored in `~/.cache/opencode/node_modules/` — opencode has its own plugin cache
+  5. `opencode plugin <name>` tries to fetch from npm registry (404 if unpublished)
+  6. Plugin can't be compiled independently — `@opencode-ai/plugin` and `@opencode-ai/sdk` are peerDeps provided by opencode host
+- **Resolution**: `npm publish` → `opencode plugin opencode-sentinel` → live test
+- **Alternative**: Check if opencode has a dev/plugin loading mode for local development

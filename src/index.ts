@@ -11,7 +11,17 @@ interface ToolContext {
 }
 
 export default async (input: any) => {
-  const v2 = createOpencodeClient({ baseUrl: input.serverUrl.toString() })
+  // In TUI / `opencode run` mode there is no TCP server: input.serverUrl is a
+  // hardcoded dummy (http://localhost:4096) and the API is only reachable via
+  // the in-process fetch wired into input.client. Reuse that client's config
+  // (baseUrl + fetch + headers) so the v2 client works in every mode;
+  // fall back to serverUrl for older hosts that don't expose _client.
+  const hostConfig = input.client?._client?.getConfig?.()
+  const v2 = createOpencodeClient(
+    hostConfig
+      ? { baseUrl: hostConfig.baseUrl, fetch: hostConfig.fetch, headers: hostConfig.headers }
+      : { baseUrl: input.serverUrl.toString() },
+  )
 
   return {
     tool: {
@@ -30,25 +40,24 @@ export default async (input: any) => {
       }),
 
       sentinel_spike: tool({
-        description: "Spike test: schedules a delayed steer delivery via v2 SDK to verify the wake mechanism works. Returns 'scheduled' immediately, then after 3 seconds sends '[spike] hello' via session.prompt at steer priority.",
+        description: "Spike test: schedules a delayed message delivery to verify the wake mechanism works. Returns 'scheduled' immediately, then after 3 seconds sends '[spike] hello' to the session as a message.",
         args: {},
         async execute(_args: Record<string, never>, ctx: ToolContext) {
           const sessionID = ctx.sessionID
           setTimeout(async () => {
             try {
-              const result = await v2.v2.session.prompt({
+              const result = await v2.session.prompt({
                 sessionID,
-                prompt: { text: "[spike] hello from sentinel — steer delivery test" },
-                delivery: "steer",
+                parts: [{ type: "text", text: "[spike] hello from sentinel — delivery test" }],
               })
               if (result.error) {
-                console.error("[sentinel_spike] steer delivery failed:", result.error)
+                console.error("[sentinel_spike] delivery failed:", result.error)
               }
             } catch (err) {
-              console.error("[sentinel_spike] steer delivery failed:", err)
+              console.error("[sentinel_spike] delivery failed:", err)
             }
           }, 3000)
-          return "scheduled — steer delivery will fire in 3 seconds"
+          return "scheduled — message delivery will fire in 3 seconds"
         },
       }),
     },

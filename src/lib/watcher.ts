@@ -23,6 +23,32 @@ export function startWatcher(params: {
   const lineTimestamps: number[] = []
   const MAX_LINES_PER_SEC = 100
 
+  // Send a notification as a regular session message (parts route).
+  // The v2 prompt/delivery API only feeds an already-running agent loop —
+  // on an idle session the input is admitted but never promoted, so the
+  // message route is the only delivery that works in every session state.
+  function notify(text: string, label: string): Promise<void> {
+    return params.v2Client.session
+      .prompt({
+        sessionID: params.sessionID,
+        parts: [{ type: "text", text }],
+      })
+      .then((result: { error?: unknown }) => {
+        if (result.error) {
+          console.error(
+            `[sentinel] ${label} notify failed for ${params.id}:`,
+            result.error,
+          )
+        }
+      })
+      .catch((err: unknown) => {
+        console.error(
+          `[sentinel] ${label} notify failed for ${params.id}:`,
+          err,
+        )
+      })
+  }
+
   function flushBatch() {
     if (batchBuffer.length === 0) return
     const text = batchBuffer
@@ -31,26 +57,7 @@ export function startWatcher(params: {
     batchBuffer = []
     batchTimer = null
     // Fire and forget — don't block the stream
-    params.v2Client.v2.session
-      .prompt({
-        sessionID: params.sessionID,
-        prompt: { text },
-        delivery: "steer",
-      })
-      .then((result: { error?: unknown }) => {
-        if (result.error) {
-          console.error(
-            `[sentinel] batch steer failed for ${params.id}:`,
-            result.error,
-          )
-        }
-      })
-      .catch((err: unknown) => {
-        console.error(
-          `[sentinel] batch steer failed for ${params.id}:`,
-          err,
-        )
-      })
+    notify(text, "batch")
   }
 
   proc.stdout!.on("data", async (chunk: Buffer) => {
@@ -78,23 +85,10 @@ export function startWatcher(params: {
             process.kill(-proc.pid, "SIGTERM")
           } catch {}
         }
-        params.v2Client.v2.session
-          .prompt({
-            sessionID: params.sessionID,
-            prompt: {
-              text: `[monitor:${params.id}] FLOOD DETECTED: ${lineTimestamps.length} lines/sec exceeds limit of ${MAX_LINES_PER_SEC}. Monitor auto-stopped.`,
-            },
-            delivery: "steer",
-          })
-          .then((result: { error?: unknown }) => {
-            if (result.error) {
-              console.error(
-                `[sentinel] flood steer failed for ${params.id}:`,
-                result.error,
-              )
-            }
-          })
-          .catch(() => {})
+        notify(
+          `[monitor:${params.id}] FLOOD DETECTED: ${lineTimestamps.length} lines/sec exceeds limit of ${MAX_LINES_PER_SEC}. Monitor auto-stopped.`,
+          "flood",
+        )
         params.manager.stop(params.id)
         return
       }
@@ -121,26 +115,10 @@ export function startWatcher(params: {
     }
 
     if (code !== 0 && code !== null) {
-      try {
-        const result = await params.v2Client.v2.session.prompt({
-          sessionID: params.sessionID,
-          prompt: {
-            text: `[monitor:${params.id}] process exited unexpectedly with code ${code}`,
-          },
-          delivery: "steer",
-        })
-        if (result.error) {
-          console.error(
-            `[sentinel] steer delivery failed for monitor ${params.id} exit:`,
-            result.error,
-          )
-        }
-      } catch (err) {
-        console.error(
-          `[sentinel] steer delivery failed for monitor ${params.id} exit:`,
-          err,
-        )
-      }
+      await notify(
+        `[monitor:${params.id}] process exited unexpectedly with code ${code}`,
+        "exit",
+      )
     }
   })
 

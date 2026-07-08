@@ -1,2 +1,5 @@
 node_modules/
 .codegraph/
+
+# APM dependencies
+apm_modules/

@@ -78,7 +78,7 @@ describe("startWatcher", () => {
     expect(proc).toBe(mockProc)
   })
 
-  test("batches multiple lines within 200ms into single steer prompt", async () => {
+  test("batches multiple lines within 200ms into single prompt", async () => {
     manager.start({
       id: "mon_batch",
       proc: mockProc as any,
@@ -193,36 +193,38 @@ describe("startWatcher", () => {
   test("flood limit: kills process when >100 lines in 1 second", () => {
     const killCalls: Array<[number, string]> = []
     const origKill = process.kill
-    ;(process as any).kill = (pid: number, signal: string) => {
-      killCalls.push([pid, signal])
+    try {
+      ;(process as any).kill = (pid: number, signal: string) => {
+        killCalls.push([pid, signal])
+      }
+
+      manager.start({
+        id: "mon_flood",
+        proc: mockProc as any,
+        description: "flood test",
+        command: "test",
+        startedAt: new Date().toISOString(),
+        linesEmitted: 0,
+      })
+
+      startWatcher({
+        id: "mon_flood",
+        command: "test",
+        sessionID: "ses_123",
+        v2Client,
+        manager,
+      })
+
+      const lines = Array.from({ length: 101 }, (_, i) => `line${i}`).join("\n")
+      mockStdout.emit("data", Buffer.from(lines + "\n"))
+
+      expect(killCalls.length).toBeGreaterThan(0)
+      const floodCall = promptCalls.find((p) =>
+        p.parts[0].text.includes("FLOOD DETECTED"),
+      )
+      expect(floodCall).toBeDefined()
+    } finally {
+      process.kill = origKill
     }
-
-    manager.start({
-      id: "mon_flood",
-      proc: mockProc as any,
-      description: "flood test",
-      command: "test",
-      startedAt: new Date().toISOString(),
-      linesEmitted: 0,
-    })
-
-    startWatcher({
-      id: "mon_flood",
-      command: "test",
-      sessionID: "ses_123",
-      v2Client,
-      manager,
-    })
-
-    const lines = Array.from({ length: 101 }, (_, i) => `line${i}`).join("\n")
-    mockStdout.emit("data", Buffer.from(lines + "\n"))
-
-    expect(killCalls.length).toBeGreaterThan(0)
-    const floodCall = promptCalls.find((p) =>
-      p.parts[0].text.includes("FLOOD DETECTED"),
-    )
-    expect(floodCall).toBeDefined()
-
-    process.kill = origKill
   })
 })

@@ -1,12 +1,13 @@
 import { spawn, type ChildProcess } from "node:child_process"
 import fs from "node:fs"
+import type { OpencodeClient } from "@opencode-ai/sdk/v2"
 import type { MonitorManager } from "./manager"
 
 export function startWatcher(params: {
   id: string
   command: string
   sessionID: string
-  v2Client: any // @opencode-ai/sdk/v2 client
+  v2Client: OpencodeClient
   manager: MonitorManager
 }): ChildProcess {
   const proc = spawn(params.command, {
@@ -30,11 +31,19 @@ export function startWatcher(params: {
     batchBuffer = []
     batchTimer = null
     // Fire and forget — don't block the stream
-    params.v2Client.session
+    params.v2Client.v2.session
       .prompt({
         sessionID: params.sessionID,
         prompt: { text },
         delivery: "steer",
+      })
+      .then((result: { error?: unknown }) => {
+        if (result.error) {
+          console.error(
+            `[sentinel] batch steer failed for ${params.id}:`,
+            result.error,
+          )
+        }
       })
       .catch((err: unknown) => {
         console.error(
@@ -69,13 +78,21 @@ export function startWatcher(params: {
             process.kill(-proc.pid, "SIGTERM")
           } catch {}
         }
-        params.v2Client.session
+        params.v2Client.v2.session
           .prompt({
             sessionID: params.sessionID,
             prompt: {
               text: `[monitor:${params.id}] FLOOD DETECTED: ${lineTimestamps.length} lines/sec exceeds limit of ${MAX_LINES_PER_SEC}. Monitor auto-stopped.`,
             },
             delivery: "steer",
+          })
+          .then((result: { error?: unknown }) => {
+            if (result.error) {
+              console.error(
+                `[sentinel] flood steer failed for ${params.id}:`,
+                result.error,
+              )
+            }
           })
           .catch(() => {})
         params.manager.stop(params.id)
@@ -105,13 +122,19 @@ export function startWatcher(params: {
 
     if (code !== 0 && code !== null) {
       try {
-        await params.v2Client.session.prompt({
+        const result = await params.v2Client.v2.session.prompt({
           sessionID: params.sessionID,
           prompt: {
             text: `[monitor:${params.id}] process exited unexpectedly with code ${code}`,
           },
           delivery: "steer",
         })
+        if (result.error) {
+          console.error(
+            `[sentinel] steer delivery failed for monitor ${params.id} exit:`,
+            result.error,
+          )
+        }
       } catch (err) {
         console.error(
           `[sentinel] steer delivery failed for monitor ${params.id} exit:`,

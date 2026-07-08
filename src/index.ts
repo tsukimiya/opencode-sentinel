@@ -36,11 +36,14 @@ export default async (input: any) => {
           const sessionID = ctx.sessionID
           setTimeout(async () => {
             try {
-              await v2.session.prompt({
+              const result = await v2.v2.session.prompt({
                 sessionID,
                 prompt: { text: "[spike] hello from sentinel — steer delivery test" },
                 delivery: "steer",
               })
+              if (result.error) {
+                console.error("[sentinel_spike] steer delivery failed:", result.error)
+              }
             } catch (err) {
               console.error("[sentinel_spike] steer delivery failed:", err)
             }

@@ -1,66 +1,33 @@
-# HANDOFF - 2026-07-08T03:39 JST
+# HANDOFF - 2026-07-08 18:01
 
 ## 使用ツール
-- OpenCode（Atlas orchestrator + Sisyphus-Junior subagents）
-- Bun（runtime, test runner）
-- npm（package publish）
-- Git / GitHub
-- asciinema（demo recording）
-- opencode CLI（live verification）
+Claude Code (Fable 5) — plan mode での設計セッション + Explore/Plan subagent 併用
 
 ## 現在のタスクと進捗
-- [x] **opencode-sentinel MVP 全実装完了** — 41/41 チェックボックス
-- [x] **npm 公開**: `opencode-sentinel@0.1.2`（tsukimiya）
-- [x] **全5ツール ライブ検証完了**: ping, spike, monitor, stop, list
-- [x] **単体テスト**: 26 pass（manager CRUD, util, watcher batch/flood/exit）
-- [x] **ドキュメント**: README.md（英語）+ README_ja.md（日本語）
-- [ ] **Phase 6 Post-MVP**: spawn/multi-session（将来計画、MVP スコープ外）
+- [x] **実装プラン2本作成**(承認保留・未着手、`.plan/` にコピー済み・remote push 済み):
+  - `.plan/agmsg-opencode-spawn-tmux.md` — agmsg で opencode worker を tmux spawn(**優先・先に実施**)
+  - `.plan/monitor-sidebar-claude-code-status-swift-moth.md` — monitor 状況の TUI sidebar 常時表示(後)
+- [x] **ロードマップ整備**: GitHub Issues [#1](https://github.com/tsukimiya/opencode-sentinel/issues/1)〜[#5](https://github.com/tsukimiya/opencode-sentinel/issues/5) + Milestone「Post-MVP Roadmap」作成済み(優先順: #1 条件マッチ通知 → #2 agmsg monitor=yes → #3 steer/parts ハイブリッド → #4 sentinel_tail → #5 OS通知)
+- [x] **tsukimiya 名義の gh 運用確立**: PAT(`~/.config/gh/tsukimiya.token`、opencode-sentinel と agmsg の両方に admin/push 権限確認済み)
+- [x] **agmsg fork 作成済み**: `tsukimiya/agmsg`(ユーザーが Web UI で作成、存在確認済み)
+- [ ] **docs/plans ブランチの main への merge**: 未決(main 直 push は常設ルールで禁止のためブランチ push で終了。merge はユーザー GO 待ち)
 
 ## 試したこと・結果
-
-### 成功
-- **opencode プラグインの正しいロード方法を発見**（公式ドキュメント https://opencode.ai/docs/ja/plugins/ より）:
-  - ディレクトリ: `~/.config/opencode/plugins/`（複数形 `plugins`）
-  - エクスポート: `export const Name: Plugin = async (ctx) =>`（デフォルトエクスポート不可）
-  - ツール引数: `tool.schema.string()`（`z.string()` 不可）
-- **プラグインのデプロイ場所**: `~/.config/opencode/plugins/sentinel.ts`
-- **v2 steer 送信**: `createOpencodeClient({ baseUrl: "http://localhost:4096" })` → `v2.session.prompt({ sessionID, prompt: {text}, delivery: "steer" })`（認証不要）
-- **npm publish 成功**: 3バージョン公開（0.1.0 → 0.1.1 → 0.1.2）
-
-### 失敗
-- `export default` + `plugin/`（単数形）ディレクトリ → ツールが一切登録されず（6時間のデバッグ）
-- `file://` URL による opencode.json 経由のロード → 設定エラーなしだが無視される
-- `opencode plugin` コマンドのローカルファイル指定 → "server target" として誤検出
-- `z.string()` によるツール引数定義 → 型エラー（公式は `tool.schema.string()`）
-
-## アーキテクチャ概要
-
-```
-~/.config/opencode/plugins/sentinel.ts  ← 実運用プラグイン（全機能内蔵）
-src/                                    ← npm パッケージソース（開発用）
-├── index.ts          # Plugin entry: 5 tools + dispose/event hooks
-├── monitor.tool.ts   # sentinel_monitor
-├── stop.tool.ts      # sentinel_stop
-├── list.tool.ts      # sentinel_list
-├── monitor.txt       # LLM向け日本語説明
-└── lib/
-    ├── manager.ts    # MonitorManager: Map CRUD, process group kill
-    ├── watcher.ts    # spawn → stdout → batch(200ms) → steer, flood(100/s)
-    └── util.ts       # generateId(), timestamp()
-test/
-├── manager.test.ts   # 14 tests
-├── util.test.ts      # 5 tests
-└── watcher.test.ts   # 7 tests
-```
+- **opencode TUI プラグイン調査(sidebar プランの根拠)**: sidebar 描画は TUI プラグイン(`api.slots.register` の `sidebar_content` スロット、Solid JSX)のみ可能。server と TUI は排他モジュールで exports 分割(`./server` / `./tui`)が必要。参考実績 hkay-dev/opencode-limits-sidebar。server→TUI のカスタムイベント push は不可(`/tui/publish` は閉じた union)→ 状態ファイル + 1秒ポーリング方式を採用。
+- **agmsg spawn 機構調査(spawn プランの根拠)**: type.conf マニフェスト完全駆動(`spawnable=yes` + `cli=`)。核心ギャップは「opencode TUI の初期プロンプトは positional 不可・`--prompt` フラグ必須」→ spawn.sh に汎用 `prompt_arg=` キー追加で解決する設計。tmux 配置・despawn --force は型非依存で流用可。
+- **gh の tsukimiya 操作(失敗→解決)**: gh は `GH_TOKEN` 環境変数で sxd-nakai-hiroki 固定であることを確認 → Fine-grained PAT 差し替え方式(`GH_TOKEN=$(cat ~/.config/gh/tsukimiya.token) gh ... -R tsukimiya/<repo>`)で解決。remote が SSH エイリアスのため `-R` 明示必須。
+- **main への直 push(ブロック)**: 常設ルールで拒否されたため `docs/plans` ブランチ(commit `945d0db`)に push。
 
 ## 次のセッションで最初にやること
-1. Phase 6（spawn/multi-session）の設計レビューと実装判断
-2. 必要なら `opencode plugin opencode-sentinel@latest` で最新版に更新
-3. 実運用での監視テスト（実際のログファイル監視）
+1. `.agents/memory/MEMORY.md` と本ファイルを読む
+2. **agmsg spawn プランの実行**: `~/Work/agmsg` に clone(`git@github-tsukimiya:tsukimiya/agmsg.git`、upstream=fujibee/agmsg、local git config を tsukimiya 名義に)→ `feat/opencode-spawn` ブランチで type.conf + spawn.sh 実装 → ローカルインストール(`~/.agents/skills/agmsg` v1.1.3)に差分適用して tmux E2E 検証
+3. その後: monitor sidebar プラン → Issue #1〜#5 の順
+4. `docs/plans` ブランチの main への取り込み可否をユーザーに確認(PR URL: https://github.com/tsukimiya/opencode-sentinel/pull/new/docs/plans)
 
 ## 注意点・ブロッカー
-- **opencode 1.17.15 固有の制約**: プラグインは必ず `~/.config/opencode/plugins/` に **名前付きエクスポート** で配置すること
-- **ツール定義は `tool.schema.string()`**: zod の `z.string()` は使えない
-- **2FA**: npm publish には OTP が必要（セッション中に複数回要求される）
-- **steer の v2 クライアント**: `localhost:4096` にハードコード（本番ではコンテキストから動的取得が望ましい）
-- **監視プロセスの孤児化**: opencode が SIGKILL されるとプロセスが残る（README に記載済み）
+- **main への直 push・直 commit は禁止**(常設ルール)。ブランチ + PR 運用。
+- **tsukimiya 名義の gh 操作**は必ず `GH_TOKEN=$(cat ~/.config/gh/tsukimiya.token)` 差し替え + `-R` 明示。fork の**作成**だけは PAT 不可(Web UI)。
+- **agmsg spawn プランの最大の不確実点**: boot プロンプト `/agmsg actas <name>` を opencode がスキル(`~/.config/opencode/skills/agmsg/SKILL.md`)経由で解釈できるか。E2E 最優先確認項目。
+- **sidebar プランの不確実点**: `.opencode/plugin/` 自動ロードが TUI プラグインに効くか(不可なら `opencode plugin <dir> -g`)、`dist/*.jsx` の loader 挙動。
+- `.agents/memory/` はまだ untracked(remote に無い)。別マシン再開で MEMORY.md が必要なら commit 対象に含めるか要判断。
+- 前セッションからの残課題(任意): opencode 本体への issue 報告2件(serverUrl ダミー / steer がアイドルで消える)は未着手のまま。

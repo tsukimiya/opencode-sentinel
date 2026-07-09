@@ -14,6 +14,7 @@ export function startWatcher(params: {
     shell: true,
     detached: true,
     stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, SENTINEL_SESSION_ID: params.sessionID },
   })
 
   let buffer = ""

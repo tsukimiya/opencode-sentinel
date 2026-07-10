@@ -15,9 +15,13 @@ function createMockProc() {
 }
 
 let currentMock = createMockProc()
+const spawnCalls: Array<{ command: string; options: any }> = []
 
 mock.module("node:child_process", () => ({
-  spawn: () => currentMock.proc,
+  spawn: (command: string, options: any) => {
+    spawnCalls.push({ command, options })
+    return currentMock.proc
+  },
 }))
 
 mock.module("node:fs", () => {
@@ -48,6 +52,7 @@ describe("startWatcher", () => {
     manager = new MonitorManager()
     promptCalls = []
     appendFileSyncCalls.length = 0
+    spawnCalls.length = 0
     v2Client = {
       session: {
         prompt: async (params: any) => {
@@ -76,6 +81,21 @@ describe("startWatcher", () => {
       manager,
     })
     expect(proc).toBe(mockProc)
+  })
+
+  test("passes SENTINEL_SESSION_ID to child process env", () => {
+    startWatcher({
+      id: "mon_env",
+      command: 'echo "$SENTINEL_SESSION_ID"',
+      sessionID: "ses_env_test",
+      v2Client,
+      manager,
+    })
+
+    expect(spawnCalls.length).toBe(1)
+    expect(spawnCalls[0].options.env.SENTINEL_SESSION_ID).toBe(
+      "ses_env_test",
+    )
   })
 
   test("batches multiple lines within 200ms into single prompt", async () => {

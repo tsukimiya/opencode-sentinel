@@ -27,5 +27,5 @@ export const MyPlugin: Plugin = async ({ client, directory }) => {
 - Works without authentication on localhost:4096 (default opencode port)
 
 ### Test results
-- 26 unit tests passing (manager CRUD, util functions, watcher batch/flood/exit)
+- All unit tests passing via `bun test` (manager CRUD, util functions, watcher batch/flood/exit)
 - All 5 tools verified live: ping, spike, monitor, stop, list

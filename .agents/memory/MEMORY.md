@@ -23,8 +23,8 @@
 
 ## tsukimiya 名義の運用(毎回ハマるので厳守)
 
-- **gh**: `GH_TOKEN=$(cat ~/.config/gh/tsukimiya.token) gh ... -R tsukimiya/<repo>`(default 認証は sxd-nakai-hiroki 固定のため PAT 差し替え必須、`-R` 明示も必須(remote が SSH エイリアスのため))
-- **git push**: SSH ホスト別名 `github-tsukimiya`(鍵 `~/.ssh/id_ed25519_tsukimiya`)
+- **gh**: gh の default 認証が別アカウントに固定されている環境では、`GH_TOKEN=<tsukimiya 名義の PAT> gh ... -R tsukimiya/<repo>` の形で PAT を差し替えて `-R` 明示が必須(remote が SSH エイリアスのため)
+- **git push**: SSH host alias `github-tsukimiya` を設定し、対応する秘密鍵をそちら向きにしておく(鍵のパスは各マシンの `~/.ssh/config` に閉じ込める・ドキュメントには書かない)
 - **local git config**: `Kiryu Tsukimiya <71832+tsukimiya@users.noreply.github.com>`
 - **fork の作成だけは PAT 不可**(Web UI 必須)
 
@@ -55,6 +55,6 @@
 
 ## テスト・品質ゲート
 
-- `bun test`: 27 unit tests(-manager CRUD・util・watcher batch/flood/exit・env受け渡し)
+- `bun test`: 全ユニットテスト pass（manager CRUD・util・watcher batch/flood/exit・env受け渡し）— 数値は都度 `bun test` で確認
 - `bunx tsc --noEmit`: strict モード・クリーン
 - 実機検証: `sentinel_ping` / `sentinel_spike` / `sentinel_monitor` / `sentinel_stop` / `sentinel_list` の5ツールで live 確認

@@ -1,33 +1,63 @@
-# HANDOFF - 2026-07-08 18:01
-
-## 使用ツール
-Claude Code (Fable 5) — plan mode での設計セッション + Explore/Plan subagent 併用
+# HANDOFF - 2026-07-28 02:24 JST
 
 ## 現在のタスクと進捗
-- [x] **実装プラン2本作成**(承認保留・未着手、`.plan/` にコピー済み・remote push 済み):
-  - `.plan/agmsg-opencode-spawn-tmux.md` — agmsg で opencode worker を tmux spawn(**優先・先に実施**)
-  - `.plan/monitor-sidebar-claude-code-status-swift-moth.md` — monitor 状況の TUI sidebar 常時表示(後)
-- [x] **ロードマップ整備**: GitHub Issues [#1](https://github.com/tsukimiya/opencode-sentinel/issues/1)〜[#5](https://github.com/tsukimiya/opencode-sentinel/issues/5) + Milestone「Post-MVP Roadmap」作成済み(優先順: #1 条件マッチ通知 → #2 agmsg monitor=yes → #3 steer/parts ハイブリッド → #4 sentinel_tail → #5 OS通知)
-- [x] **tsukimiya 名義の gh 運用確立**: PAT(`~/.config/gh/tsukimiya.token`、opencode-sentinel と agmsg の両方に admin/push 権限確認済み)
-- [x] **agmsg fork 作成済み**: `tsukimiya/agmsg`(ユーザーが Web UI で作成、存在確認済み)
-- [ ] **docs/plans ブランチの main への merge**: 未決(main 直 push は常設ルールで禁止のためブランチ push で終了。merge はユーザー GO 待ち)
 
-## 試したこと・結果
-- **opencode TUI プラグイン調査(sidebar プランの根拠)**: sidebar 描画は TUI プラグイン(`api.slots.register` の `sidebar_content` スロット、Solid JSX)のみ可能。server と TUI は排他モジュールで exports 分割(`./server` / `./tui`)が必要。参考実績 hkay-dev/opencode-limits-sidebar。server→TUI のカスタムイベント push は不可(`/tui/publish` は閉じた union)→ 状態ファイル + 1秒ポーリング方式を採用。
-- **agmsg spawn 機構調査(spawn プランの根拠)**: type.conf マニフェスト完全駆動(`spawnable=yes` + `cli=`)。核心ギャップは「opencode TUI の初期プロンプトは positional 不可・`--prompt` フラグ必須」→ spawn.sh に汎用 `prompt_arg=` キー追加で解決する設計。tmux 配置・despawn --force は型非依存で流用可。
-- **gh の tsukimiya 操作(失敗→解決)**: gh は `GH_TOKEN` 環境変数で sxd-nakai-hiroki 固定であることを確認 → Fine-grained PAT 差し替え方式(`GH_TOKEN=$(cat ~/.config/gh/tsukimiya.token) gh ... -R tsukimiya/<repo>`)で解決。remote が SSH エイリアスのため `-R` 明示必須。
-- **main への直 push(ブロック)**: 常設ルールで拒否されたため `docs/plans` ブランチ(commit `945d0db`)に push。
+### 直近セッション(2026-07-28 tsuki マシン)
+- [x] **状況把握**: HANDOFF.md(旧: 2026-07-08) と GitHub 上の PR/Issue 状態のズレを解消
+- [x] **fork 側ブランチ状況を確認**: `tsukimiya/agmsg` に `feat/opencode-spawn`(SHA `33663984`) と `feat/opencode-monitor`(SHA `80d2200c`) が既に存在・実装済み
+- [x] **MEMORY.md 新規作成**(存在しなかった)・HANDOFF.md アーカイブ(旧ファイルは `.agents/handoff/2026-07-28-0224.md` へ)
+- [ ] **docs ブランチを PR 化**(`docs/refresh-memory-handoff`): 本ファイルと MEMORY.md, learnings.md の更新を land する
+- [ ] **agmsg E2E 検証(このマシン)**: `tsukimiya/agmsg` を clone → fork ブランチ2つを取り込んで tmux 実機検証(ユーザー指示「このマシンで検証」)
+
+### コード状況
+- **ブランチ**: `docs/refresh-memory-handoff`(main から分岐)
+- **main の HEAD**: `14f3f83 chore(release): bump version to 0.1.3 (#8)`
+- **PR #9** は別マシンでマージ済み(2026-07-10): `feat(monitor): expose session id to watcher child via SENTINEL_SESSION_ID`(`src/lib/watcher.ts` に env 注入1行 + test)
+- **変更内容**(本ブランチ):
+  - `.agents/memory/MEMORY.md`(新規)
+  - `.agents/handoff/HANDOFF.md`(旧をアーカイブ → 新規作成)
+  - `.sisyphus/notepads/opencode-sentinel/learnings.md`(Phase 0 初期メモ → 実 Discoveries に書き直し・前セッションでの変更)
+
+## ロードマップ状況(Milestone: Post-MVP Roadmap)
+
+| # | Issue | 状態 | 摘要 |
+|---|---|---|---|
+| #1 | 条件マッチ通知(filter/until) | **OPEN** | 最優先候補 |
+| #2 | agmsg 統合(monitor=yes 化) | **CLOSED** 2026-07-10 | PR #9 + agmsg fork で完了 |
+| #3 | steer/parts ハイブリッド配信 | OPEN | 実行中セッションへの即時割り込み |
+| #4 | sentinel_tail(履歴照会) | OPEN | monitor 出力履歴の照会ツール |
+| #5 | OS 通知(attention.notify) | OPEN | monitor イベントの OS 通知連携 |
+
+## agmsg fork の状態(要理解)
+
+- **2ブランチが実装済み**:
+  - `feat/opencode-spawn`: opencode TUI を `--prompt` で spawn。live testing 済み。
+  - `feat/opencode-monitor`: `_delivery.sh` 経由で sentinel 配信。PR #9 と対。
+- **本家 `fujibee/agmsg` への PR は未提出**(ユーザー判断待ち)
+- **このマシン(tsuki)には agmsg のローカル clone がない** → 検証時は `~/Work/agmsg` あたりに clone する
 
 ## 次のセッションで最初にやること
-1. `.agents/memory/MEMORY.md` と本ファイルを読む
-2. **agmsg spawn プランの実行**: `~/Work/agmsg` に clone(`git@github-tsukimiya:tsukimiya/agmsg.git`、upstream=fujibee/agmsg、local git config を tsukimiya 名義に)→ `feat/opencode-spawn` ブランチで type.conf + spawn.sh 実装 → ローカルインストール(`~/.agents/skills/agmsg` v1.1.3)に差分適用して tmux E2E 検証
-3. その後: monitor sidebar プラン → Issue #1〜#5 の順
-4. `docs/plans` ブランチの main への取り込み可否をユーザーに確認(PR URL: https://github.com/tsukimiya/opencode-sentinel/pull/new/docs/plans)
+
+1. `.agents/memory/MEMORY.md` と本ファイルを読む(必須・AGENTS.md 指示)
+2. **docs PR が merge 済みか確認**(未なら merge 待ち・ユーザー判断)
+3. **agmsg E2E 検証をやる場合**:
+   - `git clone git@github-tsukimiya:tsukimiya/agmsg.git ~/Work/agmsg`
+   - `upstream` に `fujibee/agmsg` を追加
+   - `feat/opencode-spawn` と `feat/opencode-monitor` を両方取り込んだ検証用ブランチを作る(または順番に checkout して検証)
+   - ローカルの `agmsg` コマンド(npm global・v?)を fork 版に向けるか、`~/.agents/skills/agmsg` に適用
+   - tmux セッション内で `spawn.sh opencode worker1 --boot-prompt "..."` → TUI 起動・actas・メッセージ疎通・despawn を確認
+4. **agmsg をスキップして Issue #1 等を進める場合**: `.plan/monitor-sidebar-claude-code-status-swift-moth.md`(TUI sidebar) または Issue #1 の設計から着手
 
 ## 注意点・ブロッカー
-- **main への直 push・直 commit は禁止**(常設ルール)。ブランチ + PR 運用。
-- **tsukimiya 名義の gh 操作**は必ず `GH_TOKEN=$(cat ~/.config/gh/tsukimiya.token)` 差し替え + `-R` 明示。fork の**作成**だけは PAT 不可(Web UI)。
-- **agmsg spawn プランの最大の不確実点**: boot プロンプト `/agmsg actas <name>` を opencode がスキル(`~/.config/opencode/skills/agmsg/SKILL.md`)経由で解釈できるか。E2E 最優先確認項目。
-- **sidebar プランの不確実点**: `.opencode/plugin/` 自動ロードが TUI プラグインに効くか(不可なら `opencode plugin <dir> -g`)、`dist/*.jsx` の loader 挙動。
-- `.agents/memory/` はまだ untracked(remote に無い)。別マシン再開で MEMORY.md が必要なら commit 対象に含めるか要判断。
-- 前セッションからの残課題(任意): opencode 本体への issue 報告2件(serverUrl ダミー / steer がアイドルで消える)は未着手のまま。
+
+- **main 直 commit 禁止**: 常設フックで拒否。必ずブランチ + PR。
+- **tsukimiya 名義の gh**: `GH_TOKEN=$(cat ~/.config/gh/tsukimiya.token)` + `-R tsukimiya/<repo>`(詳細は MEMORY.md の「tsukimiya 名義の運用」)
+- **前セッションは別マシン(hirokinakai)** で進行していたため、ローカル PATH や clone 状態が異なる。このマシンでの再検証が必要。
+- **`.plan/agmsg-opencode-spawn-tmux.md` は古い方針**(prompt_arg 汎用キー導入を謳っているが、実際は既存機構で解決済み)。履歴として保持、実装時は fork ブランチのコミットメッセージ(`33663984`)を参照すること。
+- **MEMORY.md は以前 untracked だった** が、今回の PR で tracked 化する(別マシンでも再開できるように)。
+
+## 残課題(任意・優先度低)
+
+- 本家 `fujibee/agmsg` への PR 提出(spawn / monitor それぞれ)
+- opencode 本体への issue 報告2件(HANDOFF 旧版より): serverUrl ダミー / steer がアイドルで消える — 未着手
+- sidebar プラン(`.plan/monitor-sidebar-claude-code-status-swift-moth.md`): 承認待ち・未着手

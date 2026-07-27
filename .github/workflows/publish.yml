@@ -43,7 +43,21 @@ jobs:
         run: npm run typecheck
         continue-on-error: true
 
+      - name: Check if version already on npm
+        id: check_published
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          PKG_NAME=$(node -p "require('./package.json').name")
+          if npm view "${PKG_NAME}@${PKG_VERSION}" version >/dev/null 2>&1; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::${PKG_NAME}@${PKG_VERSION} is already on npm — skipping publish (idempotent re-run)"
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+            echo "${PKG_NAME}@${PKG_VERSION} is not on npm yet — will publish"
+          fi
+
       - name: Publish
+        if: steps.check_published.outputs.already_published != 'true'
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

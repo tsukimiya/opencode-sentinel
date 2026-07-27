@@ -3,3 +3,7 @@ node_modules/
 
 # APM dependencies
 apm_modules/
+
+# Personal session state — machine/owner-specific, must not be committed
+.agents/memory/
+.agents/handoff/

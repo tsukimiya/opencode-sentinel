@@ -1,12 +1,31 @@
-# Learnings
+# Learnings — opencode-sentinel
 
-## 2026-07-08: Phase 0 - tsconfig.json setup
-- Created `tsconfig.json` for Bun + TypeScript plugin project
-- Settings: strict mode, ESNext module/target, bundler moduleResolution, bun-types
-- `noEmit: true` since Bun handles runtime execution
-- Followed project convention of ESM-only, no outDir needed — opencode-sentinel
+## 2026-07-07 Session — Key Discoveries
 
-## 2026-07-07T17:15:59 Session Start
-- Plan loaded from `.plan/PLAN.md`
-- Project is at scaffold stage — no package.json, tsconfig.json, or src/ yet
-- Git repo exists but no commits yet
+### Critical: opencode plugin loading
+- **Directory**: MUST be `~/.config/opencode/plugins/` (PLURAL `plugins`, NOT `plugin`)
+- **Export**: MUST use named export `export const Name: Plugin = async (ctx) =>` (NOT `export default`)
+- **Tool args**: MUST use `tool.schema.string()` (NOT `z.string()` from zod)
+- **Context**: Plugin receives `{ project, client, $, directory, worktree }` (NOT `input: any`)
+- **Source**: https://opencode.ai/docs/ja/plugins/
+
+### Plugin entry pattern
+```typescript
+import { type Plugin, tool } from "@opencode-ai/plugin"
+export const MyPlugin: Plugin = async ({ client, directory }) => {
+  return {
+    tool: { /* tool definitions */ },
+    dispose: async () => { /* cleanup */ },
+    event: async ({ event }) => { /* event handling */ },
+  }
+}
+```
+
+### Steer delivery
+- v2 client: `createOpencodeClient({ baseUrl })` from `@opencode-ai/sdk/v2`
+- `v2.session.prompt({ sessionID, prompt: {text}, delivery: "steer" })`
+- Works without authentication on localhost:4096 (default opencode port)
+
+### Test results
+- 26 unit tests passing (manager CRUD, util functions, watcher batch/flood/exit)
+- All 5 tools verified live: ping, spike, monitor, stop, list

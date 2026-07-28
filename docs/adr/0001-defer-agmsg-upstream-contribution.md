@@ -58,7 +58,7 @@ Accepted（2026-07-28）
 
 - `sentinel_monitor` の API が数バージョンの運用で安定した
 - opencode-sentinel の Issue #1（条件マッチ通知）等が実装され、機能スコープが確定した
-- fujibee/agmsg 本家で同じニーズスの Issue/PR が出た
+- fujibee/agmsg 本家で同じニーズの Issue/PR が出た
 - opencode 本体標準化（D）の目途が立った
 
 ## Consequences
@@ -98,7 +98,6 @@ Accepted（2026-07-28）
 
 ### 参考資料
 
-- 今セッションの会話履歴（opencode-sentinel/.agents/handoff/HANDOFF.md 2026-07-28 03:55 JST 版・ローカル）
 - `tsukimiya/agmsg` fork の `feat/opencode-spawn`（commit `33663984`）・`feat/opencode-monitor`（commit `80d2200c`）
 - opencode-sentinel Issue #2「agmsg 統合 — sentinel 配信経路による monitor=yes 化」（CLOSED 2026-07-10）
 - opencode-sentinel PR #9「feat(monitor): expose session id to watcher child via SENTINEL_SESSION_ID」（本家 monitor 側の調整）

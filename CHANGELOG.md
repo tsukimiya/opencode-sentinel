@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5] - 2026-08-XX
+
+### Added
+- **`sentinel_monitor` now accepts optional `filter` and `until` regex arguments for condition-based notification** ([Issue #1](https://github.com/tsukimiya/opencode-sentinel/issues/1)).
+  - `filter`: only lines matching the regex are notified; non-matching lines are silently dropped.
+  - `until`: when a line matches (after `filter` if set), the line is notified and the monitor auto-stops — enables one-shot wait patterns (e.g. "wake me when CI finishes").
+  - Invalid regex at start is reported and the monitor is not launched.
+
+### Changed
+- `sentinel_list` now includes `filter` / `until` in each entry when set.
+
+### Test Coverage
+- New tests covering filter-only notification, until auto-stop, filter+until composition, and list visibility of the new fields.
+
 ## [0.1.4] - 2026-07-28
 
 ### Added
@@ -40,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tools: `sentinel_monitor`, `sentinel_stop`, `sentinel_list`, `sentinel_ping`, `sentinel_spike`.
 - Features: 200ms batching, flood protection (100 lines/sec auto-kill), stderr separation, auto cleanup on session end.
 
+[0.1.5]: https://github.com/tsukimiya/opencode-sentinel/releases/tag/v0.1.5
 [0.1.4]: https://github.com/tsukimiya/opencode-sentinel/releases/tag/v0.1.4
 [0.1.3]: https://github.com/tsukimiya/opencode-sentinel/releases/tag/v0.1.3
 [0.1.2]: https://github.com/tsukimiya/opencode-sentinel/releases/tag/v0.1.2

@@ -28,6 +28,22 @@ sentinel_monitor — バックグラウンドプロセス監視ツール
 3. stderr は `/tmp/sentinel-{id}-stderr.log` に分離して記録します
 4. プロセスが予期せず終了した場合も steer 通知で報告します
 
+## 条件マッチ通知（filter / until）
+
+`sentinel_monitor` は2つの正規表現引数を取ります:
+
+- `filter`（任意）: マッチした行だけ通知。非マッチ行は破棄される。
+- `until`（任意）: マッチした行を通知後、monitor を自動終了する（ワンショット待機）。
+
+併用時は `filter` で絞った上で `until` を評価します（パイプ順）。
+
+使用例:
+- ERROR 行だけ通知: `filter="ERROR"`
+- CI 完了を待機: `until="(completed|failed)"`
+- ビルドのエラー行だけ観て完了で止める: `filter="(error|fatal)" until="BUILD (SUCCESS|FAILED)"`
+
+不正な正規表現を渡すと monitor は起動せず、エラーメッセージを返します。
+
 ## 関連ツール
 - sentinel_stop: 実行中のモニターを停止します
 - sentinel_list: 実行中のモニター一覧を確認します

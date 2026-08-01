@@ -7,6 +7,8 @@ export interface MonitorEntry {
   command: string
   startedAt: string
   linesEmitted: number
+  filter?: string
+  until?: string
 }
 
 export interface MonitorEntryPublic {
@@ -15,6 +17,8 @@ export interface MonitorEntryPublic {
   command: string
   startedAt: string
   linesEmitted: number
+  filter?: string
+  until?: string
 }
 
 export class MonitorManager {
@@ -51,6 +55,8 @@ export class MonitorManager {
       command: entry.command,
       startedAt: entry.startedAt,
       linesEmitted: entry.linesEmitted,
+      filter: entry.filter,
+      until: entry.until,
     }))
   }
 

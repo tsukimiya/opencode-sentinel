@@ -9,6 +9,8 @@ export function startWatcher(params: {
   sessionID: string
   v2Client: OpencodeClient
   manager: MonitorManager
+  filter?: string
+  until?: string
 }): ChildProcess {
   const proc = spawn(params.command, {
     shell: true,
@@ -16,6 +18,9 @@ export function startWatcher(params: {
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env, SENTINEL_SESSION_ID: params.sessionID },
   })
+
+  const filterRe = params.filter ? new RegExp(params.filter) : null
+  const untilRe = params.until ? new RegExp(params.until) : null
 
   let buffer = ""
   let batchBuffer: string[] = []
@@ -90,6 +95,29 @@ export function startWatcher(params: {
           `[monitor:${params.id}] FLOOD DETECTED: ${lineTimestamps.length} lines/sec exceeds limit of ${MAX_LINES_PER_SEC}. Monitor auto-stopped.`,
           "flood",
         )
+        params.manager.stop(params.id)
+        return
+      }
+
+      if (filterRe && !filterRe.test(line)) continue
+
+      // until is evaluated on the filter-surviving stream, so filter+until compose as a pipeline.
+      if (untilRe && untilRe.test(line)) {
+        batchBuffer.push(line)
+        if (batchTimer) {
+          clearTimeout(batchTimer)
+          batchTimer = null
+        }
+        flushBatch()
+        notify(
+          `[monitor:${params.id}] UNTIL MATCHED "${params.until}" — monitor auto-stopped`,
+          "until",
+        )
+        if (proc.pid) {
+          try {
+            process.kill(-proc.pid, "SIGTERM")
+          } catch {}
+        }
         params.manager.stop(params.id)
         return
       }

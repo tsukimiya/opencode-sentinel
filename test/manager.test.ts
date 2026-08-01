@@ -92,6 +92,20 @@ describe("MonitorManager", () => {
       mgr.start(mockEntry({ id: "mon_b" }))
       expect(mgr.list().length).toBe(2)
     })
+
+    test("includes filter and until when set", () => {
+      mgr.start(mockEntry({ id: "mon_f", filter: "ERROR", until: "DONE" }))
+      const items = mgr.list()
+      expect(items[0].filter).toBe("ERROR")
+      expect(items[0].until).toBe("DONE")
+    })
+
+    test("filter and until are undefined when not set", () => {
+      mgr.start(mockEntry({ id: "mon_nf" }))
+      const items = mgr.list()
+      expect(items[0].filter).toBeUndefined()
+      expect(items[0].until).toBeUndefined()
+    })
   })
 
   describe("incrementLines", () => {

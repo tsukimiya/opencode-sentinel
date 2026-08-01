@@ -19,12 +19,14 @@ export function createMonitorTool(v2Client: any) {
         .describe("Human-readable label shown in monitor notifications"),
       filter: z
         .string()
+        .min(1)
         .optional()
         .describe(
           "JavaScript regular expression. Only stdout lines matching this regex are notified; non-matching lines are silently dropped.",
         ),
       until: z
         .string()
+        .min(1)
         .optional()
         .describe(
           'JavaScript regular expression. When a line matches (after filter, if set), the line is notified and the monitor auto-stops. Useful for one-shot wait patterns like "wake me when CI finishes".',

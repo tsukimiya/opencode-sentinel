@@ -12,15 +12,15 @@ export function startWatcher(params: {
   filter?: string
   until?: string
 }): ChildProcess {
+  const filterRe = params.filter ? new RegExp(params.filter) : null
+  const untilRe = params.until ? new RegExp(params.until) : null
+
   const proc = spawn(params.command, {
     shell: true,
     detached: true,
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env, SENTINEL_SESSION_ID: params.sessionID },
   })
-
-  const filterRe = params.filter ? new RegExp(params.filter) : null
-  const untilRe = params.until ? new RegExp(params.until) : null
 
   let buffer = ""
   let batchBuffer: string[] = []

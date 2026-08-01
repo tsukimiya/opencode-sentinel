@@ -247,4 +247,121 @@ describe("startWatcher", () => {
       process.kill = origKill
     }
   })
+
+  test("filter: only matching lines are notified", async () => {
+    manager.start({
+      id: "mon_filter",
+      proc: mockProc as any,
+      description: "filter test",
+      command: "test",
+      startedAt: new Date().toISOString(),
+      linesEmitted: 0,
+    })
+
+    startWatcher({
+      id: "mon_filter",
+      command: "test",
+      sessionID: "ses_123",
+      v2Client,
+      manager,
+      filter: "ERROR",
+    })
+
+    mockStdout.emit("data", Buffer.from("INFO ok\nERROR bad\nWARN meh\nERROR more\n"))
+    await new Promise((r) => setTimeout(r, 250))
+
+    const notifiedText = promptCalls.map((p) => p.parts[0].text).join("\n")
+    expect(notifiedText).toContain("ERROR bad")
+    expect(notifiedText).toContain("ERROR more")
+    expect(notifiedText).not.toContain("INFO ok")
+    expect(notifiedText).not.toContain("WARN meh")
+  })
+
+  test("until: matching line notifies and auto-stops monitor", async () => {
+    const killCalls: Array<[number, string]> = []
+    const origKill = process.kill
+    try {
+      ;(process as any).kill = (pid: number, signal: string) => {
+        killCalls.push([pid, signal])
+      }
+
+      manager.start({
+        id: "mon_until",
+        proc: mockProc as any,
+        description: "until test",
+        command: "test",
+        startedAt: new Date().toISOString(),
+        linesEmitted: 0,
+      })
+
+      startWatcher({
+        id: "mon_until",
+        command: "test",
+        sessionID: "ses_123",
+        v2Client,
+        manager,
+        until: "DONE",
+      })
+
+      mockStdout.emit("data", Buffer.from("working\nworking\nDONE\npost\n"))
+      await new Promise((r) => setTimeout(r, 50))
+
+      expect(killCalls.some(([, s]) => s === "SIGTERM")).toBe(true)
+      expect(manager.get("mon_until")).toBeUndefined()
+
+      const untilCall = promptCalls.find((p) =>
+        p.parts[0].text.includes("UNTIL MATCHED"),
+      )
+      expect(untilCall).toBeDefined()
+      expect(untilCall!.parts[0].text).toContain("DONE")
+
+      const notifiedText = promptCalls.map((p) => p.parts[0].text).join("\n")
+      expect(notifiedText).toContain("DONE")
+      expect(notifiedText).not.toContain("post")
+    } finally {
+      process.kill = origKill
+    }
+  })
+
+  test("filter + until: until fires only on filter-surviving lines", async () => {
+    const killCalls: Array<[number, string]> = []
+    const origKill = process.kill
+    try {
+      ;(process as any).kill = (pid: number, signal: string) => {
+        killCalls.push([pid, signal])
+      }
+
+      manager.start({
+        id: "mon_both",
+        proc: mockProc as any,
+        description: "filter+until test",
+        command: "test",
+        startedAt: new Date().toISOString(),
+        linesEmitted: 0,
+      })
+
+      startWatcher({
+        id: "mon_both",
+        command: "test",
+        sessionID: "ses_123",
+        v2Client,
+        manager,
+        filter: "ERROR",
+        until: "DONE",
+      })
+
+      mockStdout.emit("data", Buffer.from("INFO ignore\nDONE ignored\nERROR DONE\npost\n"))
+      await new Promise((r) => setTimeout(r, 50))
+
+      expect(killCalls.some(([, s]) => s === "SIGTERM")).toBe(true)
+
+      const notifiedText = promptCalls.map((p) => p.parts[0].text).join("\n")
+      expect(notifiedText).toContain("ERROR DONE")
+      expect(notifiedText).not.toContain("DONE ignored")
+      expect(notifiedText).not.toContain("INFO ignore")
+      expect(notifiedText).not.toContain("post")
+    } finally {
+      process.kill = origKill
+    }
+  })
 })

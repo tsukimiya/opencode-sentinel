@@ -10,10 +10,12 @@ export const sentinel_list = tool({
       return "No monitors are currently running."
     }
     return monitors
-      .map(
-        (m) =>
-          `[${m.id}] ${m.description}\n  command: ${m.command}\n  started: ${m.startedAt}\n  lines: ${m.linesEmitted}`,
-      )
+      .map((m) => {
+        let s = `[${m.id}] ${m.description}\n  command: ${m.command}\n  started: ${m.startedAt}\n  lines: ${m.linesEmitted}`
+        if (m.filter) s += `\n  filter: ${m.filter}`
+        if (m.until) s += `\n  until: ${m.until}`
+        return s
+      })
       .join("\n\n")
   },
 })

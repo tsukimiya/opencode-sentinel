@@ -50,6 +50,39 @@ sentinel_monitor で /var/log/app.log の ERROR 行を監視して
 ❌ tail -f /var/log/app.log | grep ERROR
 ```
 
+### 出力のフィルタリング (filter)
+
+JavaScript の正規表現を `filter` に渡すと、マッチした行だけ通知します:
+
+```
+sentinel_monitor with:
+  command: tail -f /var/log/app.log | grep --line-buffered -E "(ERROR|WARN)"
+  filter: "ERROR"
+```
+
+ERROR 行だけが通知され、WARN 行は通知されません。
+
+### ワンショット待機 (until)
+
+`until` を使うと、マッチした行が現れた時点で monitor を自動終了します。
+「CI が終わったら起こして」のような sleep ポーリング不要のパターンに最適:
+
+```
+sentinel_monitor with:
+  command: gh run watch <run-id>
+  until: "(completed|failed)"
+```
+
+`until` がマッチすると該当行が通知され、monitor は自動的に終了します。
+`filter` と組み合わせて、まずストリームを絞ってから `until` を評価することもできます:
+
+```
+sentinel_monitor with:
+  command: tail -f build.log
+  filter: "(error|fatal)"
+  until: "BUILD (SUCCESS|FAILED)"
+```
+
 ## 制限事項
 
 - **プロセスの孤児化**: opencode 本体が `SIGKILL` などで強制終了した場合、監視プロセスが残る可能性があります。通常の終了（`dispose` フック経由）では全プロセスが停止されます。

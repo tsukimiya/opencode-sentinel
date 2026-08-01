@@ -66,6 +66,37 @@ When piping to grep, you **must** use `--line-buffered`:
 
 Without `--line-buffered`, grep buffers output and lines won't arrive in real-time.
 
+### Filtering Output (filter)
+
+Pass a JavaScript regex to `filter` to receive only matching lines:
+
+```
+sentinel_monitor with:
+  command: tail -f /var/log/app.log | grep --line-buffered -E "(ERROR|WARN)"
+  filter: "ERROR"
+```
+
+Only ERROR lines arrive as notifications; WARN lines are silently dropped.
+
+### One-Shot Wait (until)
+
+Use `until` to auto-stop the monitor when a matching line appears — ideal for "wake me when CI finishes" patterns without sleep polling:
+
+```
+sentinel_monitor with:
+  command: gh run watch <run-id>
+  until: "(completed|failed)"
+```
+
+When `until` matches, the line is delivered and the monitor is terminated automatically. Combine with `filter` to narrow the stream first:
+
+```
+sentinel_monitor with:
+  command: tail -f build.log
+  filter: "(error|fatal)"
+  until: "BUILD (SUCCESS|FAILED)"
+```
+
 ## steer vs queue
 
 Sentinel uses `delivery: "steer"` for agent notifications. Here's how it differs from `"queue"`:

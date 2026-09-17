@@ -16,7 +16,7 @@
   "keywords": ["opencode", "plugin", "monitor", "sentinel", "cli", "tail", "log"],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test ./test/"
   },
   "peerDependencies": {
     "@opencode-ai/plugin": ">=1.14.34",

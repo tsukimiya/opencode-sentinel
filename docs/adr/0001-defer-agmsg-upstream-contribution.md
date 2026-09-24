@@ -2,7 +2,13 @@
 
 ## Status
 
-Accepted（2026-07-28）
+Archived（2026-09-24） — 旧 Status: Accepted（2026-07-28）
+
+## Outcome
+
+本 ADR を公開した後、fujibee/agmsg のメンテナが取り込みの意向を示した。これを受けて本家に PR を出し（fujibee/agmsg#546、#547）、メンテナによる re-land の fujibee/agmsg#570「feat(opencode): monitor delivery via opencode-sentinel plugin」が 2026-07-31 にマージされた。
+
+「本家への還元は保留する」という前提が解消したため、本 ADR は役目を終えたものとしてアーカイブする。以下の本文は 2026-07-28 時点の判断の記録として残す。
 
 ## Context
 

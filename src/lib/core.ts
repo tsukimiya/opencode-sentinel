@@ -51,6 +51,7 @@ export function startMonitor(params: StartMonitorParams): string {
     command: params.command,
     startedAt: timestamp(),
     linesEmitted: 0,
+    sessionID: params.sessionID,
     filter: params.filter,
     until: params.until,
   })

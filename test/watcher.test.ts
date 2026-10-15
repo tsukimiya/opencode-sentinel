@@ -101,6 +101,7 @@ describe("startWatcher", () => {
       command: "test",
       startedAt: new Date().toISOString(),
       linesEmitted: 0,
+      sessionID: "ses_123",
     })
 
     startWatcher({
@@ -129,6 +130,7 @@ describe("startWatcher", () => {
       command: "test",
       startedAt: new Date().toISOString(),
       linesEmitted: 0,
+      sessionID: "ses_123",
     })
 
     startWatcher({
@@ -251,6 +253,7 @@ describe("startWatcher", () => {
       command: "test",
       startedAt: new Date().toISOString(),
       linesEmitted: 0,
+      sessionID: "ses_123",
     })
 
     startWatcher({

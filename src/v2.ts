@@ -31,7 +31,13 @@ interface V2Context {
     }) => Promise<unknown>
   }
   event: {
-    subscribe: (options: { signal: AbortSignal }) => AsyncIterable<{ type: string }>
+    subscribe: (options: {
+      signal: AbortSignal
+    }) => AsyncIterable<{
+      type: string
+      data?: { sessionID?: string }
+      properties?: { sessionID?: string }
+    }>
   }
 }
 
@@ -163,7 +169,12 @@ export async function v2Setup(
           signal: controller.signal,
         })) {
           if (event.type === "session.deleted") {
-            manager.dispose()
+            // V2 delivers events shaped as { type, data: <payload> }.
+            const sessionID =
+              event.data?.sessionID ?? event.properties?.sessionID
+            if (typeof sessionID === "string") {
+              manager.disposeSession(sessionID)
+            }
           }
         }
       } catch {

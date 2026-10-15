@@ -75,9 +75,10 @@ export async function v1Server(input: any, _options?: unknown) {
 
     event: async (event: any) => {
       if (event.type === "session.deleted") {
-        const sessionID = event.properties?.sessionID
-        if (sessionID) {
-          manager.dispose()
+        // V1 delivers events shaped as { type, properties: <payload> }.
+        const sessionID = event.data?.sessionID ?? event.properties?.sessionID
+        if (typeof sessionID === "string") {
+          manager.disposeSession(sessionID)
         }
       }
     },

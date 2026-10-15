@@ -41,9 +41,21 @@ interface CapturedTool {
 function makeCtx() {
   const tools: CapturedTool[] = []
   const promptCalls: any[] = []
+  const queue: any[] = []
+  let waiter: ((r: IteratorResult<any>) => void) | null = null
   const state = {
     subscribed: false,
     signal: undefined as AbortSignal | undefined,
+  }
+
+  const pushEvent = (event: any) => {
+    if (waiter) {
+      const resolve = waiter
+      waiter = null
+      resolve({ value: event, done: false })
+    } else {
+      queue.push(event)
+    }
   }
 
   const ctx = {
@@ -66,20 +78,30 @@ function makeCtx() {
         state.subscribed = true
         state.signal = opts.signal
         return {
-          [Symbol.asyncIterator]: async function* () {
-            await new Promise<void>((resolve) => {
-              if (opts.signal.aborted) return resolve()
-              opts.signal.addEventListener("abort", () => resolve(), {
-                once: true,
+          [Symbol.asyncIterator]: () => ({
+            next: () => {
+              if (queue.length > 0) {
+                return Promise.resolve({ value: queue.shift(), done: false })
+              }
+              if (opts.signal.aborted) {
+                return Promise.resolve({ value: undefined, done: true })
+              }
+              return new Promise<IteratorResult<any>>((resolve) => {
+                waiter = resolve
+                opts.signal.addEventListener(
+                  "abort",
+                  () => resolve({ value: undefined, done: true }),
+                  { once: true },
+                )
               })
-            })
-          },
+            },
+          }),
         }
       },
     },
   }
 
-  return { ctx, tools, promptCalls, state }
+  return { ctx, tools, promptCalls, state, pushEvent }
 }
 
 function toolByName(tools: CapturedTool[], name: string): CapturedTool {
@@ -203,5 +225,27 @@ describe("v2Setup", () => {
     disposer()
     expect(state.signal!.aborted).toBe(true)
     expect(manager.list().length).toBe(0)
+  })
+
+  test("session.deleted disposes only that session's monitors", async () => {
+    const { ctx, tools, pushEvent } = makeCtx()
+    await v2Setup(ctx)
+
+    const a = await toolByName(tools, "sentinel_monitor").execute(
+      { command: "sleep 1", description: "a" },
+      { sessionID: "ses_a" },
+    )
+    const b = await toolByName(tools, "sentinel_monitor").execute(
+      { command: "sleep 1", description: "b" },
+      { sessionID: "ses_b" },
+    )
+    const idA = a.content.match(/Monitor started: (\S+)/)![1]
+    const idB = b.content.match(/Monitor started: (\S+)/)![1]
+
+    pushEvent({ type: "session.deleted", data: { sessionID: "ses_a" } })
+    await new Promise((r) => setTimeout(r, 20))
+
+    expect(manager.get(idA)).toBeUndefined()
+    expect(manager.get(idB)).toBeDefined()
   })
 })
